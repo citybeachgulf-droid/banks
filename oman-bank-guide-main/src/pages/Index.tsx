@@ -117,18 +117,14 @@ const Index = () => {
       .replace(/(^-|-$)+/g, '');
 
   const addBank = () => {
-    if (!newBankName || !newBankNameEn || !newBankHQ || !newBankWebsite || !newBankType || !newBankYear) {
-      toast({ title: 'خطأ', description: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
+    if (!newBankName || !newBankHQ) {
+      toast({ title: 'خطأ', description: 'الرجاء إدخال اسم البنك وموقع المكتب الرئيسي', variant: 'destructive' });
       return;
     }
 
-    const yearNum = Number(newBankYear);
-    if (!Number.isInteger(yearNum) || yearNum < 1800 || yearNum > new Date().getFullYear() + 1) {
-      toast({ title: 'خطأ', description: 'يرجى إدخال سنة تأسيس صحيحة', variant: 'destructive' });
-      return;
-    }
+    const defaultYear = new Date().getFullYear();
 
-    const baseId = slugify(newBankNameEn || newBankName);
+    const baseId = slugify(newBankName);
     let candidateId = baseId || `bank-${Date.now()}`;
     const existingIds = new Set(bankData.banks.map(b => b.id));
     let suffix = 1;
@@ -139,11 +135,11 @@ const Index = () => {
     const newBank: Bank = {
       id: candidateId,
       name: newBankName,
-      nameEn: newBankNameEn,
-      establishedYear: yearNum,
+      nameEn: newBankName,
+      establishedYear: defaultYear,
       headquarters: newBankHQ,
-      website: newBankWebsite,
-      type: newBankType,
+      website: '',
+      type: 'commercial',
       branches: []
     };
 
@@ -342,34 +338,8 @@ const Index = () => {
                         <Input id="bank-name" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} placeholder="مثال: بنك مسقط" />
                       </div>
                       <div>
-                        <Label htmlFor="bank-name-en">اسم البنك (إنجليزي) *</Label>
-                        <Input id="bank-name-en" value={newBankNameEn} onChange={(e) => setNewBankNameEn(e.target.value)} placeholder="Example: Bank Muscat" />
-                      </div>
-                      <div>
-                        <Label htmlFor="bank-type">نوع البنك *</Label>
-                        <Select value={newBankType} onValueChange={(v) => setNewBankType(v as any)}>
-                          <SelectTrigger id="bank-type">
-                            <SelectValue placeholder="اختر النوع" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="commercial">تجاري</SelectItem>
-                            <SelectItem value="islamic">إسلامي</SelectItem>
-                            <SelectItem value="investment">استثماري</SelectItem>
-                            <SelectItem value="specialized">متخصص</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="bank-year">سنة التأسيس *</Label>
-                        <Input id="bank-year" inputMode="numeric" value={newBankYear} onChange={(e) => setNewBankYear(e.target.value)} placeholder="مثال: 1990" />
-                      </div>
-                      <div>
-                        <Label htmlFor="bank-hq">المقر الرئيسي *</Label>
+                        <Label htmlFor="bank-hq">موقع المكتب الرئيسي *</Label>
                         <Input id="bank-hq" value={newBankHQ} onChange={(e) => setNewBankHQ(e.target.value)} placeholder="مثال: مسقط، سلطنة عمان" />
-                      </div>
-                      <div>
-                        <Label htmlFor="bank-website">الموقع الإلكتروني *</Label>
-                        <Input id="bank-website" value={newBankWebsite} onChange={(e) => setNewBankWebsite(e.target.value)} placeholder="https://example.com" />
                       </div>
                       <Button onClick={addBank} className="w-full">إضافة البنك</Button>
                     </div>
