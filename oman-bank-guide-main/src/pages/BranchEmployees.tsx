@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Building2, Users } from 'lucide-react';
+import { Phone, Building2, Users, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -148,6 +148,14 @@ const BranchEmployees = () => {
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-2">
                           {e.phone && (<><Phone className="w-4 h-4" /><span>{e.phone}</span></>)}
+                          {e.linkedinUrl && (
+                            <Button variant="outline" size="sm" asChild>
+                              <a href={e.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                                <Linkedin className="w-4 h-4" />
+                                <span>لينكدإن</span>
+                              </a>
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
