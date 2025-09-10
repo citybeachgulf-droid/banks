@@ -39,6 +39,52 @@ function toAbsoluteUrl(url) {
   return `https://www.linkedin.com${url}`;
 }
 
+function isProfileUrl(url) {
+  return /linkedin\.com\/in\//.test(url);
+}
+
+function isPeopleCollectionUrl(url) {
+  return /linkedin\.com\/(company|school)\/[^/]+\/people\/?/.test(url) || /linkedin\.com\/search\/results\/people/.test(url);
+}
+
+async function autoScrollPage(page, maxIterations = 20, delayMs = 800) {
+  for (let i = 0; i < maxIterations; i++) {
+    await page.evaluate(() => {
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      scrollingElement.scrollTo(0, scrollingElement.scrollHeight);
+    });
+    await page.waitForTimeout(delayMs);
+  }
+}
+
+async function expandPeopleCollectionToProfiles(page, url, maxProfiles = 20) {
+  const collected = new Set();
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+
+    // Try initial harvest + progressive scroll
+    for (let i = 0; i < 15; i++) {
+      const hrefs = await page.$$eval('a[href*="/in/"]', (anchors) => anchors.map((a) => a.href));
+      for (const href of hrefs) {
+        if (!href) continue;
+        const clean = href.split('#')[0].split('?')[0];
+        if (isProfileUrl(clean)) collected.add(clean);
+        if (collected.size >= maxProfiles) break;
+      }
+      if (collected.size >= maxProfiles) break;
+      await page.evaluate(() => {
+        const scrollingElement = document.scrollingElement || document.documentElement;
+        scrollingElement.scrollTo(0, scrollingElement.scrollHeight);
+      });
+      await page.waitForTimeout(1000 + Math.floor(Math.random() * 400));
+    }
+  } catch (_) {
+    // Swallow and return what we have
+  }
+  return Array.from(collected);
+}
+
 async function applyEnvCookies(context) {
   const cookies = [];
   if (process.env.LI_COOKIES_JSON) {
@@ -141,7 +187,25 @@ async function main() {
   if (argv.url) {
     urls.push(...argv.url.map(String));
   }
-  urls = Array.from(new Set(urls)).filter((u) => /linkedin\.com\/in\//.test(u));
+  urls = Array.from(new Set(urls.map(String)));
+  const directProfileUrls = urls.filter((u) => isProfileUrl(u));
+  const collectionUrls = urls.filter((u) => isPeopleCollectionUrl(u));
+
+  const browserPre = await chromium.launch({ headless: !argv.headful });
+  const contextPre = await browserPre.newContext({ viewport: { width: 1280, height: 900 } });
+  await applyEnvCookies(contextPre);
+  const pagePre = await contextPre.newPage();
+  await ensureLoggedIn(pagePre);
+
+  let expandedFromCollections = [];
+  for (const colUrl of collectionUrls) {
+    const expanded = await expandPeopleCollectionToProfiles(pagePre, colUrl, 30);
+    expandedFromCollections.push(...expanded);
+  }
+
+  await browserPre.close();
+
+  urls = Array.from(new Set([...directProfileUrls, ...expandedFromCollections])).filter((u) => isProfileUrl(u));
   if (urls.length === 0) {
     console.error('No valid LinkedIn profile URLs provided. Use --input or --url.');
     process.exit(1);
