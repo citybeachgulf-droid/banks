@@ -25,25 +25,30 @@ Copy `.env.example` to `.env` and set one of:
 If not set, the script opens a browser window so you can sign in manually.
 
 ### Usage
-Run with a list of profile URLs (must contain `linkedin.com/in/`).
+Run with a list of profile URLs (must contain `linkedin.com/in/`) or a company People page (`linkedin.com/company/<slug>/people/`). The tool will expand People pages into profile URLs for you (after login), then scrape each profile.
 
 From file:
 ```bash
 node src/index.js --input profiles.txt --output output.csv --headful --locale both
 ```
 
-Inline URLs:
+Inline URLs (profiles and/or People page):
 ```bash
-node src/index.js -u https://www.linkedin.com/in/someone -u https://www.linkedin.com/in/another --output out.json
+node src/index.js \
+  -u https://www.linkedin.com/in/someone \
+  -u https://www.linkedin.com/company/omanarabbank/people/ \
+  --output out.json
 ```
 
 Options:
 - `--input, -i`: text file with one URL per line
-- `--url, -u`: provide one or more URLs inline
+- `--url, -u`: provide one or more URLs inline (profiles or company People)
 - `--output, -o`: output file path (.json or .csv)
 - `--headful`: show browser window (default true)
 - `--timeout`: per-profile navigation timeout (ms)
 - `--locale`: CSV header language: `en`, `ar`, or `both` (default `both`)
+- `--maxProfiles`: max profiles to collect from each People page (default 200)
+- `--maxScrolls`: max scroll passes on People pages (default 20)
 
 ### Input example
 See `profiles.txt` created in this project; add your own.
