@@ -7,6 +7,10 @@ import { SearchAndFilter } from '@/components/SearchAndFilter';
 import { DataCollector } from '@/components/DataCollector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Database, Globe, BarChart3, Download, RefreshCw, Users } from 'lucide-react';
@@ -22,6 +26,15 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Add Bank dialog state
+  const [isAddBankOpen, setIsAddBankOpen] = useState(false);
+  const [newBankNameAr, setNewBankNameAr] = useState('');
+  const [newBankNameEn, setNewBankNameEn] = useState('');
+  const [newBankWebsite, setNewBankWebsite] = useState('');
+  const [newBankHq, setNewBankHq] = useState('مسقط، سلطنة عمان');
+  const [newBankType, setNewBankType] = useState<'commercial' | 'islamic' | 'investment' | 'specialized'>('commercial');
+  const [newBankYear, setNewBankYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     setIsLoading(true);
@@ -207,6 +220,96 @@ const Index = () => {
                   <Users className="w-4 h-4" />
                   موظفو الفروع
                 </Button>
+                <Dialog open={isAddBankOpen} onOpenChange={setIsAddBankOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      + إضافة بنك
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>إضافة بنك جديد</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-3">
+                      <div>
+                        <Label htmlFor="bank-ar">اسم البنك (عربي)</Label>
+                        <Input id="bank-ar" value={newBankNameAr} onChange={(e) => setNewBankNameAr(e.target.value)} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-en">اسم البنك (إنجليزي)</Label>
+                        <Input id="bank-en" value={newBankNameEn} onChange={(e) => setNewBankNameEn(e.target.value)} className="mt-1" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="bank-year">سنة التأسيس</Label>
+                          <Input id="bank-year" type="number" value={newBankYear} onChange={(e) => setNewBankYear(parseInt(e.target.value || '0', 10))} className="mt-1" />
+                        </div>
+                        <div>
+                          <Label>النوع</Label>
+                          <Select value={newBankType} onValueChange={(v) => setNewBankType(v as any)}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="اختر النوع" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="commercial">تجاري</SelectItem>
+                              <SelectItem value="islamic">إسلامي</SelectItem>
+                              <SelectItem value="investment">استثماري</SelectItem>
+                              <SelectItem value="specialized">متخصص</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-hq">المقر الرئيسي</Label>
+                        <Input id="bank-hq" value={newBankHq} onChange={(e) => setNewBankHq(e.target.value)} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-website">الموقع الإلكتروني</Label>
+                        <Input id="bank-website" type="url" placeholder="https://example.com" value={newBankWebsite} onChange={(e) => setNewBankWebsite(e.target.value)} className="mt-1" />
+                      </div>
+                      <div className="pt-2 flex gap-2 justify-end">
+                        <Button variant="outline" onClick={() => setIsAddBankOpen(false)}>إلغاء</Button>
+                        <Button onClick={() => {
+                          if (!newBankNameAr.trim() || !newBankNameEn.trim()) {
+                            toast({ title: 'حقول مطلوبة', description: 'يرجى إدخال اسم البنك بالعربية والإنجليزية', variant: 'destructive' });
+                            return;
+                          }
+                          const id = newBankNameEn.trim().toLowerCase().replace(/\s+/g, '-');
+                          const newBank: Bank = {
+                            id,
+                            name: newBankNameAr.trim(),
+                            nameEn: newBankNameEn.trim(),
+                            establishedYear: isNaN(newBankYear) ? new Date().getFullYear() : newBankYear,
+                            headquarters: newBankHq.trim() || 'مسقط، سلطنة عمان',
+                            website: newBankWebsite.trim() || 'https://',
+                            type: newBankType,
+                            branches: []
+                          };
+                          const current = loadBankData();
+                          // prevent duplicate id
+                          if (current.banks.some(b => b.id === newBank.id)) {
+                            toast({ title: 'موجود مسبقاً', description: 'يوجد بنك بنفس المعرف، عدّل الاسم الإنجليزي', variant: 'destructive' });
+                            return;
+                          }
+                          const updated: BankData = {
+                            banks: [...current.banks, newBank],
+                            lastUpdated: new Date().toISOString()
+                          };
+                          saveBankData(updated);
+                          setBankData(updated);
+                          setIsAddBankOpen(false);
+                          setNewBankNameAr('');
+                          setNewBankNameEn('');
+                          setNewBankWebsite('');
+                          setNewBankHq('مسقط، سلطنة عمان');
+                          setNewBankType('commercial');
+                          setNewBankYear(new Date().getFullYear());
+                          toast({ title: 'تمت الإضافة', description: 'تمت إضافة البنك بنجاح' });
+                        }}>حفظ</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
 
