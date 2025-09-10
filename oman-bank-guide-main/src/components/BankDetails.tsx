@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit } from 'lucide-react';
+import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit, Trash2 } from 'lucide-react';
 import { exportToCSV } from '@/utils/bankData';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface BankDetailsProps {
   bank: Bank;
@@ -179,6 +180,19 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
     });
   };
 
+  const removeBranch = (branchId: string) => {
+    const updatedBank = {
+      ...bank,
+      branches: bank.branches.filter(b => b.id !== branchId)
+    };
+    onUpdateBank(updatedBank);
+    if (selectedBranch?.id === branchId) {
+      setSelectedBranch(null);
+      setActiveTab('branches');
+    }
+    toast({ title: 'تم الحذف', description: 'تم مسح الفرع بنجاح' });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -303,7 +317,28 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
                         <span>{branch.city} - {branch.area}</span>
                       </div>
                     </div>
-                    <Badge variant="outline">{branch.employees.length} موظف</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{branch.employees.length} موظف</Badge>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="h-8 px-2">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>تأكيد مسح الفرع</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              سيتم حذف الفرع وجميع بيانات موظفيه المرتبطة. لا يمكن التراجع عن هذه الخطوة.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeBranch(branch.id)}>مسح</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
