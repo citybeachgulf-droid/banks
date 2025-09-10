@@ -1,0 +1,21 @@
+{
+  "name": "linkedin-contact-cli",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "scrape": "node src/index.js --input profiles.txt --output output.csv --headful"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "CLI to extract visible contact info from LinkedIn profiles using Playwright",
+  "type": "module",
+  "devDependencies": {
+    "dotenv": "^17.2.2",
+    "json2csv": "^6.0.0-alpha.2",
+    "playwright": "^1.55.0",
+    "yargs": "^17.7.2"
+  }
+}
