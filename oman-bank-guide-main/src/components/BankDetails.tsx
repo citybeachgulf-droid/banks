@@ -419,21 +419,28 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{branch.employees.length} موظف</Badge>
-                      <label className="inline-flex items-center text-sm cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImportEmployees(branch.id, file);
-                            e.currentTarget.value = '';
-                          }}
-                        />
-                        <Button variant="outline" size="sm" className="h-8 px-2">
-                          استيراد إكسل
-                        </Button>
-                      </label>
+                      <input
+                        id={`import-${branch.id}`}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImportEmployees(branch.id, file);
+                          (e.currentTarget as HTMLInputElement).value = '';
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => {
+                          const input = document.getElementById(`import-${branch.id}`) as HTMLInputElement | null;
+                          input?.click();
+                        }}
+                      >
+                        استيراد إكسل
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm" className="h-8 px-2">
