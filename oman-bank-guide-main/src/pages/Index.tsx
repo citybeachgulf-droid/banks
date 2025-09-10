@@ -7,6 +7,10 @@ import { SearchAndFilter } from '@/components/SearchAndFilter';
 import { DataCollector } from '@/components/DataCollector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Database, Globe, BarChart3, Download, RefreshCw, Users } from 'lucide-react';
@@ -20,6 +24,13 @@ const Index = () => {
   const [selectedCity, setSelectedCity] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddingBank, setIsAddingBank] = useState(false);
+  const [newBankName, setNewBankName] = useState('');
+  const [newBankNameEn, setNewBankNameEn] = useState('');
+  const [newBankType, setNewBankType] = useState<'commercial' | 'islamic' | 'investment' | 'specialized'>('commercial');
+  const [newBankYear, setNewBankYear] = useState<string>('');
+  const [newBankHQ, setNewBankHQ] = useState('');
+  const [newBankWebsite, setNewBankWebsite] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -85,6 +96,60 @@ const Index = () => {
     setBankData(newBankData);
     saveBankData(newBankData);
     setSelectedBank(updatedBank);
+  };
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/(^-|-$)+/g, '');
+
+  const addBank = () => {
+    if (!newBankName || !newBankNameEn || !newBankHQ || !newBankWebsite || !newBankType || !newBankYear) {
+      toast({ title: 'خطأ', description: 'يرجى ملء جميع الحقول المطلوبة', variant: 'destructive' });
+      return;
+    }
+
+    const yearNum = Number(newBankYear);
+    if (!Number.isInteger(yearNum) || yearNum < 1800 || yearNum > new Date().getFullYear() + 1) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال سنة تأسيس صحيحة', variant: 'destructive' });
+      return;
+    }
+
+    const baseId = slugify(newBankNameEn || newBankName);
+    let candidateId = baseId || `bank-${Date.now()}`;
+    const existingIds = new Set(bankData.banks.map(b => b.id));
+    let suffix = 1;
+    while (existingIds.has(candidateId)) {
+      candidateId = `${baseId}-${suffix++}`;
+    }
+
+    const newBank: Bank = {
+      id: candidateId,
+      name: newBankName,
+      nameEn: newBankNameEn,
+      establishedYear: yearNum,
+      headquarters: newBankHQ,
+      website: newBankWebsite,
+      type: newBankType,
+      branches: []
+    };
+
+    const newData: BankData = {
+      banks: [...bankData.banks, newBank],
+      lastUpdated: new Date().toISOString()
+    };
+    setBankData(newData);
+    saveBankData(newData);
+    setIsAddingBank(false);
+    setNewBankName('');
+    setNewBankNameEn('');
+    setNewBankType('commercial');
+    setNewBankYear('');
+    setNewBankHQ('');
+    setNewBankWebsite('');
+    toast({ title: 'تم بنجاح', description: 'تم إضافة البنك إلى النظام' });
   };
 
   const handleDataCollected = (collectedData: any) => {
@@ -249,6 +314,55 @@ const Index = () => {
                 />
               </div>
               <div className="flex gap-2">
+                <Dialog open={isAddingBank} onOpenChange={setIsAddingBank}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      إضافة بنك
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>إضافة بنك جديد</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="bank-name">اسم البنك (عربي) *</Label>
+                        <Input id="bank-name" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} placeholder="مثال: بنك مسقط" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-name-en">اسم البنك (إنجليزي) *</Label>
+                        <Input id="bank-name-en" value={newBankNameEn} onChange={(e) => setNewBankNameEn(e.target.value)} placeholder="Example: Bank Muscat" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-type">نوع البنك *</Label>
+                        <Select value={newBankType} onValueChange={(v) => setNewBankType(v as any)}>
+                          <SelectTrigger id="bank-type">
+                            <SelectValue placeholder="اختر النوع" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="commercial">تجاري</SelectItem>
+                            <SelectItem value="islamic">إسلامي</SelectItem>
+                            <SelectItem value="investment">استثماري</SelectItem>
+                            <SelectItem value="specialized">متخصص</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-year">سنة التأسيس *</Label>
+                        <Input id="bank-year" inputMode="numeric" value={newBankYear} onChange={(e) => setNewBankYear(e.target.value)} placeholder="مثال: 1990" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-hq">المقر الرئيسي *</Label>
+                        <Input id="bank-hq" value={newBankHQ} onChange={(e) => setNewBankHQ(e.target.value)} placeholder="مثال: مسقط، سلطنة عمان" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bank-website">الموقع الإلكتروني *</Label>
+                        <Input id="bank-website" value={newBankWebsite} onChange={(e) => setNewBankWebsite(e.target.value)} placeholder="https://example.com" />
+                      </div>
+                      <Button onClick={addBank} className="w-full">إضافة البنك</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" onClick={refreshData} size="sm" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
                   تحديث
