@@ -10,17 +10,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit } from 'lucide-react';
+import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit, Trash2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { exportToCSV } from '@/utils/bankData';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface BankDetailsProps {
   bank: Bank;
   onBack: () => void;
   onUpdateBank: (bank: Bank) => void;
+  onDeleteBank: (bankId: string) => void;
 }
 
-export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) => {
+export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDetailsProps) => {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [activeTab, setActiveTab] = useState<'branches' | 'employees'>('branches');
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
@@ -142,6 +145,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
       'القسم': emp.department,
       'رقم الهاتف': emp.phone || 'غير متوفر',
       'البريد الإلكتروني': emp.email || 'غير متوفر',
+      'لينكدإن': emp.linkedinUrl || 'غير متوفر',
       'الموافقة': emp.hasConsent ? 'نعم' : 'لا',
       'تاريخ الإضافة': new Date(emp.addedDate).toLocaleDateString('ar-SA')
     }));
@@ -166,6 +170,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
         'القسم': emp.department,
         'رقم الهاتف': emp.phone || 'غير متوفر',
         'البريد الإلكتروني': emp.email || 'غير متوفر',
+        'لينكدإن': emp.linkedinUrl || 'غير متوفر',
         'الموافقة': emp.hasConsent ? 'نعم' : 'لا',
         'تاريخ الإضافة': new Date(emp.addedDate).toLocaleDateString('ar-SA')
       }))
@@ -179,6 +184,93 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
     });
   };
 
+  const removeBranch = (branchId: string) => {
+    const updatedBank = {
+      ...bank,
+      branches: bank.branches.filter(b => b.id !== branchId)
+    };
+    onUpdateBank(updatedBank);
+    if (selectedBranch?.id === branchId) {
+      setSelectedBranch(null);
+      setActiveTab('branches');
+    }
+    toast({ title: 'تم الحذف', description: 'تم مسح الفرع بنجاح' });
+  };
+
+  const handleImportEmployees = async (branchId: string, file: File) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      const headerMap: Record<string, string> = {
+        // Arabic headers
+        'الاسم': 'name',
+        'اسم الموظف': 'name',
+        'المنصب': 'position',
+        'القسم': 'department',
+        'الهاتف': 'phone',
+        'رقم الهاتف': 'phone',
+        'البريد الإلكتروني': 'email',
+        'لينكدإن': 'linkedinUrl',
+        'رابط لينكدإن': 'linkedinUrl',
+        'linkedin': 'linkedinUrl',
+        'linkedin url': 'linkedinUrl',
+        // English fallbacks
+        'name': 'name',
+        'position': 'position',
+        'department': 'department',
+        'phone': 'phone',
+        'email': 'email',
+        'linkedinurl': 'linkedinUrl',
+        'linkedin profile': 'linkedinUrl',
+      } as any;
+
+      const normalizeKey = (k: string) => (k || '').toString().trim().toLowerCase();
+
+      const employeesToAdd: Employee[] = rows.map((row) => {
+        const normalized: any = {};
+        for (const key of Object.keys(row)) {
+          const mapped = headerMap[normalizeKey(key)] || headerMap[key as any] || key;
+          normalized[mapped] = row[key];
+        }
+        const emp: Employee = {
+          id: `emp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          branchId,
+          name: (normalized.name || '').toString().trim(),
+          position: (normalized.position || '').toString().trim(),
+          department: (normalized.department || '').toString().trim(),
+          phone: (normalized.phone || '').toString().trim() || undefined,
+          email: (normalized.email || '').toString().trim() || undefined,
+          linkedinUrl: (normalized.linkedinUrl || normalized.linkedin || '').toString().trim() || undefined,
+          hasConsent: false,
+          addedDate: new Date().toISOString(),
+        };
+        return emp;
+      }).filter(e => e.name);
+
+      if (employeesToAdd.length === 0) {
+        toast({ title: 'لا توجد بيانات', description: 'لم يتم العثور على سجلات صالحة في الملف', variant: 'destructive' });
+        return;
+      }
+
+      const updatedBank: Bank = {
+        ...bank,
+        branches: bank.branches.map(br => br.id === branchId ? {
+          ...br,
+          employees: [...br.employees, ...employeesToAdd]
+        } : br)
+      };
+
+      onUpdateBank(updatedBank);
+      toast({ title: 'تم الاستيراد', description: `تمت إضافة ${employeesToAdd.length} موظفاً` });
+    } catch (e) {
+      toast({ title: 'فشل الاستيراد', description: 'تأكد من صيغة ملف إكسل والمحاولة مرة أخرى', variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -186,10 +278,32 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
           <ArrowRight className="w-4 h-4" />
           العودة للقائمة
         </Button>
-        <Button onClick={exportAllData} className="gap-2 bg-gradient-accent">
-          <Download className="w-4 h-4" />
-          تصدير جميع البيانات
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportAllData} className="gap-2 bg-gradient-accent">
+            <Download className="w-4 h-4" />
+            تصدير جميع البيانات
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="w-4 h-4" />
+                مسح البنك
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>تأكيد مسح البنك</AlertDialogTitle>
+                <AlertDialogDescription>
+                  سيتم حذف هذا البنك وجميع فروعه وبيانات موظفيه المرتبطة. لا يمكن التراجع عن هذه الخطوة.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { onDeleteBank(bank.id); toast({ title: 'تم الحذف', description: 'تم مسح البنك بنجاح' }); }}>مسح</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <Card className="bg-gradient-card shadow-elegant">
@@ -303,7 +417,43 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
                         <span>{branch.city} - {branch.area}</span>
                       </div>
                     </div>
-                    <Badge variant="outline">{branch.employees.length} موظف</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{branch.employees.length} موظف</Badge>
+                      <label className="inline-flex items-center text-sm cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImportEmployees(branch.id, file);
+                            e.currentTarget.value = '';
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="h-8 px-2">
+                          استيراد إكسل
+                        </Button>
+                      </label>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="h-8 px-2">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>تأكيد مسح الفرع</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              سيتم حذف الفرع وجميع بيانات موظفيه المرتبطة. لا يمكن التراجع عن هذه الخطوة.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeBranch(branch.id)}>مسح</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
