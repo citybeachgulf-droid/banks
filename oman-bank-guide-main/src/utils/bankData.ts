@@ -223,6 +223,12 @@ export const loadBankData = (): BankData => {
 
 export const saveBankData = (data: BankData): void => {
   localStorage.setItem('oman-banks-data', JSON.stringify(data));
+  // Notify app listeners that bank data has been updated so UI can refresh immediately
+  try {
+    window.dispatchEvent(new CustomEvent('bank-data-updated', { detail: data }));
+  } catch {
+    // no-op: window might be unavailable in some environments
+  }
 };
 
 export const exportToCSV = (data: any[], filename: string): void => {

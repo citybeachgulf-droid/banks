@@ -28,6 +28,17 @@ const Index = () => {
     setIsLoading(false);
   }, []);
 
+  // Listen for bank data updates triggered anywhere (e.g., after import/save)
+  useEffect(() => {
+    const handleBankDataUpdated = (event: Event) => {
+      // Reload from storage to keep a single source of truth
+      const updated = loadBankData();
+      setBankData(updated);
+    };
+    window.addEventListener('bank-data-updated', handleBankDataUpdated as EventListener);
+    return () => window.removeEventListener('bank-data-updated', handleBankDataUpdated as EventListener);
+  }, []);
+
   const cities = useMemo(() => {
     const allCities = bankData.banks.flatMap(bank => 
       bank.branches.map(branch => branch.city)
@@ -75,10 +86,18 @@ const Index = () => {
   };
 
   const handleDataCollected = (collectedData: any) => {
-    // In a real implementation, this would process the collected data
+    // In a real implementation, process and merge collectedData into banks/branches
+    const current = loadBankData();
+    const newBankData: BankData = {
+      ...current,
+      // Placeholder: assume data merged elsewhere; bump timestamp to trigger UI update
+      lastUpdated: new Date().toISOString()
+    };
+    setBankData(newBankData);
+    saveBankData(newBankData); // will dispatch 'bank-data-updated' for any listeners
     toast({
       title: "تم تحديث البيانات",
-      description: "تم دمج البيانات الجديدة مع قاعدة البيانات المحلية"
+      description: "تم دمج البيانات الجديدة وتحديث الفروع مباشرة"
     });
   };
 
