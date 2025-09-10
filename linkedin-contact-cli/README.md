@@ -29,7 +29,7 @@ Run with a list of profile URLs (must contain `linkedin.com/in/`).
 
 From file:
 ```bash
-node src/index.js --input profiles.txt --output output.csv --headful
+node src/index.js --input profiles.txt --output output.csv --headful --locale both
 ```
 
 Inline URLs:
@@ -43,6 +43,7 @@ Options:
 - `--output, -o`: output file path (.json or .csv)
 - `--headful`: show browser window (default true)
 - `--timeout`: per-profile navigation timeout (ms)
+- `--locale`: CSV header language: `en`, `ar`, or `both` (default `both`)
 
 ### Input example
 See `profiles.txt` created in this project; add your own.
@@ -50,4 +51,9 @@ See `profiles.txt` created in this project; add your own.
 ### Notes
 - Be gentle: add delays, avoid bulk scraping, and follow LinkedIn TOS and local laws.
 - This extracts only what is visible to your account (no bypassing privacy).
+  
+### Arabic/English data support
+- CSV headers can be English, Arabic, or bilingual via `--locale`.
+- CSV is written with UTF-8 BOM to display Arabic correctly in Excel.
+- Phone numbers are normalized to Western digits if Arabic numerals are found.
 

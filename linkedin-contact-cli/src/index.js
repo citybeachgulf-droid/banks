@@ -29,8 +29,34 @@ function extractEmails(text) {
 }
 
 function extractPhones(text) {
+  const normalizeArabicDigits = (input) => {
+    if (!input) return input;
+    const arabicIndicZero = '٠'.charCodeAt(0);
+    const easternArabicIndicZero = '۰'.charCodeAt(0);
+    let out = '';
+    for (const ch of input) {
+      const code = ch.charCodeAt(0);
+      // Arabic-Indic digits ٠١٢٣٤٥٦٧٨٩
+      if (code >= 0x0660 && code <= 0x0669) {
+        out += String(code - 0x0660);
+        continue;
+      }
+      // Eastern Arabic-Indic digits ۰۱۲۳۴۵۶۷۸۹
+      if (code >= 0x06F0 && code <= 0x06F9) {
+        out += String(code - 0x06F0);
+        continue;
+      }
+      out += ch;
+    }
+    return out;
+  };
+
+  const normalized = normalizeArabicDigits(text);
   const phoneRegex = /(?:\+\d{1,3}[\s-]?)?(?:\(?\d{2,4}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}/g;
-  return Array.from(new Set((text.match(phoneRegex) || []).map((p) => p.trim())));
+  const raw = normalized.match(phoneRegex) || [];
+  const cleaned = raw.map((p) => p.trim());
+  const unique = Array.from(new Set(cleaned));
+  return unique.sort((a, b) => a.localeCompare(b, 'en'));
 }
 
 function toAbsoluteUrl(url) {
@@ -129,6 +155,7 @@ async function main() {
     .option('output', { alias: 'o', type: 'string', default: 'output.json', describe: 'Output file (json or csv)' })
     .option('headful', { type: 'boolean', default: true, describe: 'Show browser window (recommended for login)' })
     .option('timeout', { type: 'number', default: 30000, describe: 'Navigation timeout per profile in ms' })
+    .option('locale', { type: 'string', choices: ['en', 'ar', 'both'], default: 'both', describe: 'CSV header language: en, ar, or both' })
     .demandOption(['output'])
     .help()
     .parse();
@@ -157,6 +184,10 @@ async function main() {
   for (const url of urls) {
     page.setDefaultNavigationTimeout(argv.timeout);
     const res = await scrapeProfile(page, url);
+    // Normalize row lists for consistent ordering
+    res.emails = Array.from(new Set((res.emails || []).map((e) => String(e).trim()))).sort((a, b) => a.localeCompare(b, 'en'));
+    res.phones = Array.from(new Set((res.phones || []).map((p) => String(p).trim()))).sort((a, b) => a.localeCompare(b, 'en'));
+    res.links = Array.from(new Set((res.links || []).map((l) => String(l).trim()))).sort((a, b) => a.localeCompare(b, 'en'));
     results.push(res);
     await sleep(1000 + Math.floor(Math.random() * 1500));
   }
@@ -165,15 +196,35 @@ async function main() {
 
   const outPath = path.isAbsolute(argv.output) ? argv.output : path.join(process.cwd(), argv.output);
   if (outPath.toLowerCase().endsWith('.csv')) {
-    const csvFields = ['url', 'name', 'headline', 'emails', 'phones', 'links', 'error'];
-    const csvParser = new CsvParser({ fields: csvFields, transforms: [(obj) => ({
-      ...obj,
-      emails: (obj.emails || []).join('; '),
-      phones: (obj.phones || []).join('; '),
-      links: (obj.links || []).join('; '),
-    })] });
+    const labelFor = (en, ar) => {
+      if (argv.locale === 'en') return en;
+      if (argv.locale === 'ar') return ar;
+      return `${en} / ${ar}`;
+    };
+    const csvFields = [
+      { label: labelFor('URL', 'الرابط'), value: 'url' },
+      { label: labelFor('Name', 'الاسم'), value: 'name' },
+      { label: labelFor('Headline', 'المسمى الوظيفي'), value: 'headline' },
+      { label: labelFor('Emails', 'البريد الإلكتروني'), value: 'emails' },
+      { label: labelFor('Phones', 'الهاتف'), value: 'phones' },
+      { label: labelFor('Links', 'الروابط'), value: 'links' },
+      { label: labelFor('Error', 'خطأ'), value: 'error' },
+    ];
+    const csvParser = new CsvParser({
+      fields: csvFields,
+      transforms: [
+        (obj) => ({
+          ...obj,
+          emails: (obj.emails || []).join('; '),
+          phones: (obj.phones || []).join('; '),
+          links: (obj.links || []).join('; '),
+        }),
+      ],
+      withBOM: false, // we add BOM manually for consistent behavior
+    });
     const csv = csvParser.parse(results);
-    await fs.writeFile(outPath, csv, 'utf8');
+    const csvWithBom = `\uFEFF${csv}`; // UTF-8 BOM for Excel Arabic support
+    await fs.writeFile(outPath, csvWithBom, 'utf8');
   } else {
     await fs.writeFile(outPath, JSON.stringify(results, null, 2), 'utf8');
   }
