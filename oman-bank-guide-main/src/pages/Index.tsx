@@ -88,18 +88,68 @@ const Index = () => {
   };
 
   const handleDataCollected = (collectedData: any) => {
-    // In a real implementation, process and merge collectedData into banks/branches
     const current = loadBankData();
+
+    // Normalize incoming banks from different result shapes
+    let incomingBanks: Bank[] = [];
+    if (Array.isArray(collectedData)) {
+      for (const item of collectedData) {
+        if (Array.isArray(item?.banks)) incomingBanks.push(...item.banks);
+      }
+    } else if (Array.isArray(collectedData?.banks)) {
+      incomingBanks = collectedData.banks;
+    }
+
+    if (incomingBanks.length === 0) {
+      const newBankData: BankData = {
+        ...current,
+        lastUpdated: new Date().toISOString()
+      };
+      setBankData(newBankData);
+      saveBankData(newBankData);
+      toast({
+        title: "تم تحديث البيانات",
+        description: "لم يتم العثور على عناصر جديدة؛ تم تحديث التاريخ فقط"
+      });
+      return;
+    }
+
+    // Merge banks and branches (deduplicate by id, fallback to name+city for branches)
+    const mergedBanks: Bank[] = [...current.banks];
+    const bankIdIndex = new Map<string, Bank>(mergedBanks.map(b => [b.id, b]));
+    const bankNameIndex = new Map<string, Bank>(mergedBanks.map(b => [b.name, b]));
+
+    for (const incoming of incomingBanks) {
+      const existing = bankIdIndex.get(incoming.id) || bankNameIndex.get(incoming.name);
+      if (!existing) {
+        mergedBanks.push(incoming);
+        bankIdIndex.set(incoming.id, incoming);
+        bankNameIndex.set(incoming.name, incoming);
+        continue;
+      }
+
+      const existingBranchIds = new Set(existing.branches.map(br => br.id));
+      const existingBranchKeys = new Set(existing.branches.map(br => `${br.name}-${br.city}`));
+
+      for (const br of incoming.branches || []) {
+        const key = `${br.name}-${br.city}`;
+        if (!existingBranchIds.has(br.id) && !existingBranchKeys.has(key)) {
+          existing.branches.push({ ...br, bankId: existing.id });
+          existingBranchIds.add(br.id);
+          existingBranchKeys.add(key);
+        }
+      }
+    }
+
     const newBankData: BankData = {
-      ...current,
-      // Placeholder: assume data merged elsewhere; bump timestamp to trigger UI update
+      banks: mergedBanks,
       lastUpdated: new Date().toISOString()
     };
     setBankData(newBankData);
-    saveBankData(newBankData); // will dispatch 'bank-data-updated' for any listeners
+    saveBankData(newBankData);
     toast({
-      title: "تم تحديث البيانات",
-      description: "تم دمج البيانات الجديدة وتحديث الفروع مباشرة"
+      title: "تم دمج البيانات الجديدة",
+      description: `تمت إضافة/تحديث ${incomingBanks.length} بنك`
     });
   };
 

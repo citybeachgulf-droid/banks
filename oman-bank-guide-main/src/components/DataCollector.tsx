@@ -34,28 +34,76 @@ export const DataCollector = ({ onDataCollected }: DataCollectorProps) => {
       setProgress(target);
     }
     
-    // Simulate results
-    const mockResults = [
-      {
-        source: source,
-        banksFound: Math.floor(Math.random() * 10) + 5,
-        branchesFound: Math.floor(Math.random() * 50) + 20,
-        employeesFound: Math.floor(Math.random() * 200) + 50,
-        status: 'success',
-        timestamp: new Date().toISOString()
+    // Generate demo banks/branches to inject into the page immediately
+    const randomId = () => `auto-${Math.random().toString(36).slice(2, 8)}-${Date.now()}`;
+    const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    const cityOptions = ['مسقط', 'نزوى', 'صلالة', 'صحار', 'عبري', 'صور'];
+    const areaOptions = ['القرم', 'روي', 'الخوض', 'بوشر', 'السيب', 'مطرح'];
+    const typeOptions = ['commercial', 'islamic', 'investment', 'specialized'];
+
+    const makeBranch = (bankId: string, idx: number) => ({
+      id: `${bankId}-br-${idx}-${randomId()}`,
+      bankId,
+      name: `فرع ${pick(areaOptions)}`,
+      city: pick(cityOptions),
+      area: pick(areaOptions),
+      address: 'عنوان تم جمعه تلقائياً',
+      phone: '+968 2' + Math.floor(4000000 + Math.random() * 4999999).toString(),
+      coordinates: undefined,
+      employees: [],
+      services: ['حسابات توفير', 'قروض شخصية'],
+      workingHours: {
+        sunday: { open: '08:00', close: '14:00', isOpen: true },
+        monday: { open: '08:00', close: '14:00', isOpen: true },
+        tuesday: { open: '08:00', close: '14:00', isOpen: true },
+        wednesday: { open: '08:00', close: '14:00', isOpen: true },
+        thursday: { open: '08:00', close: '14:00', isOpen: true },
+        friday: { open: '00:00', close: '00:00', isOpen: false },
+        saturday: { open: '00:00', close: '00:00', isOpen: false }
       }
-    ];
-    
-    setCollectionResults(prev => [...prev, ...mockResults]);
+    });
+
+    const banksCount = 1 + Math.floor(Math.random() * 2); // 1-2 banks
+    const generatedBanks = Array.from({ length: banksCount }).map((_, bankIdx) => {
+      const id = `collected-${bankIdx}-${randomId()}`;
+      const branchesCount = 1 + Math.floor(Math.random() * 3); // 1-3 branches
+      return {
+        id,
+        name: `بنك تم جمعه ${bankIdx + 1}`,
+        nameEn: `Collected Bank ${bankIdx + 1}`,
+        establishedYear: 2000 + Math.floor(Math.random() * 24),
+        headquarters: 'سلطنة عمان',
+        website: 'https://example.com',
+        type: pick(typeOptions),
+        branches: Array.from({ length: branchesCount }).map((__, i) => makeBranch(id, i))
+      };
+    });
+
+    const counts = {
+      banksFound: generatedBanks.length,
+      branchesFound: generatedBanks.reduce((s, b) => s + b.branches.length, 0),
+      employeesFound: 0
+    };
+
+    const result = {
+      source: source,
+      ...counts,
+      status: 'success',
+      timestamp: new Date().toISOString(),
+      banks: generatedBanks
+    };
+
+    setCollectionResults(prev => [...prev, result]);
     setIsCollecting(false);
     setProgress(0);
     
     toast({
       title: "تم جمع البيانات",
-      description: `تم العثور على ${mockResults[0].banksFound} بنك و ${mockResults[0].branchesFound} فرع`
+      description: `تم العثور على ${counts.banksFound} بنك و ${counts.branchesFound} فرع`
     });
     
-    onDataCollected(mockResults);
+    // Pass the detailed banks so the page can immediately display them
+    onDataCollected(result);
   };
 
   const collectFromOfficialSources = () => {
