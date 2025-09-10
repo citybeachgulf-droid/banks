@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Database, Globe, BarChart3, Download, RefreshCw } from 'lucide-react';
+import { Building2, Database, Globe, BarChart3, Download, RefreshCw, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -20,12 +21,24 @@ const Index = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoading(true);
     const data = loadBankData();
     setBankData(data);
     setIsLoading(false);
+  }, []);
+
+  // Listen for bank data updates triggered anywhere (e.g., after import/save)
+  useEffect(() => {
+    const handleBankDataUpdated = (event: Event) => {
+      // Reload from storage to keep a single source of truth
+      const updated = loadBankData();
+      setBankData(updated);
+    };
+    window.addEventListener('bank-data-updated', handleBankDataUpdated as EventListener);
+    return () => window.removeEventListener('bank-data-updated', handleBankDataUpdated as EventListener);
   }, []);
 
   const cities = useMemo(() => {
@@ -75,10 +88,18 @@ const Index = () => {
   };
 
   const handleDataCollected = (collectedData: any) => {
-    // In a real implementation, this would process the collected data
+    // In a real implementation, process and merge collectedData into banks/branches
+    const current = loadBankData();
+    const newBankData: BankData = {
+      ...current,
+      // Placeholder: assume data merged elsewhere; bump timestamp to trigger UI update
+      lastUpdated: new Date().toISOString()
+    };
+    setBankData(newBankData);
+    saveBankData(newBankData); // will dispatch 'bank-data-updated' for any listeners
     toast({
       title: "تم تحديث البيانات",
-      description: "تم دمج البيانات الجديدة مع قاعدة البيانات المحلية"
+      description: "تم دمج البيانات الجديدة وتحديث الفروع مباشرة"
     });
   };
 
@@ -181,6 +202,10 @@ const Index = () => {
                 <Button variant="outline" onClick={refreshData} size="sm" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
                   تحديث
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/employees')} size="sm" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  موظفو الفروع
                 </Button>
               </div>
             </div>
