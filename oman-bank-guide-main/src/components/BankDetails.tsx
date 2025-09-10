@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit, Trash2 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { exportToCSV } from '@/utils/bankData';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -144,6 +145,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
       'القسم': emp.department,
       'رقم الهاتف': emp.phone || 'غير متوفر',
       'البريد الإلكتروني': emp.email || 'غير متوفر',
+      'لينكدإن': emp.linkedinUrl || 'غير متوفر',
       'الموافقة': emp.hasConsent ? 'نعم' : 'لا',
       'تاريخ الإضافة': new Date(emp.addedDate).toLocaleDateString('ar-SA')
     }));
@@ -168,6 +170,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
         'القسم': emp.department,
         'رقم الهاتف': emp.phone || 'غير متوفر',
         'البريد الإلكتروني': emp.email || 'غير متوفر',
+        'لينكدإن': emp.linkedinUrl || 'غير متوفر',
         'الموافقة': emp.hasConsent ? 'نعم' : 'لا',
         'تاريخ الإضافة': new Date(emp.addedDate).toLocaleDateString('ar-SA')
       }))
@@ -192,6 +195,80 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
       setActiveTab('branches');
     }
     toast({ title: 'تم الحذف', description: 'تم مسح الفرع بنجاح' });
+  };
+
+  const handleImportEmployees = async (branchId: string, file: File) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      const headerMap: Record<string, string> = {
+        // Arabic headers
+        'الاسم': 'name',
+        'اسم الموظف': 'name',
+        'المنصب': 'position',
+        'القسم': 'department',
+        'الهاتف': 'phone',
+        'رقم الهاتف': 'phone',
+        'البريد الإلكتروني': 'email',
+        'لينكدإن': 'linkedinUrl',
+        'رابط لينكدإن': 'linkedinUrl',
+        'linkedin': 'linkedinUrl',
+        'linkedin url': 'linkedinUrl',
+        // English fallbacks
+        'name': 'name',
+        'position': 'position',
+        'department': 'department',
+        'phone': 'phone',
+        'email': 'email',
+        'linkedinurl': 'linkedinUrl',
+        'linkedin profile': 'linkedinUrl',
+      } as any;
+
+      const normalizeKey = (k: string) => (k || '').toString().trim().toLowerCase();
+
+      const employeesToAdd: Employee[] = rows.map((row) => {
+        const normalized: any = {};
+        for (const key of Object.keys(row)) {
+          const mapped = headerMap[normalizeKey(key)] || headerMap[key as any] || key;
+          normalized[mapped] = row[key];
+        }
+        const emp: Employee = {
+          id: `emp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          branchId,
+          name: (normalized.name || '').toString().trim(),
+          position: (normalized.position || '').toString().trim(),
+          department: (normalized.department || '').toString().trim(),
+          phone: (normalized.phone || '').toString().trim() || undefined,
+          email: (normalized.email || '').toString().trim() || undefined,
+          linkedinUrl: (normalized.linkedinUrl || normalized.linkedin || '').toString().trim() || undefined,
+          hasConsent: false,
+          addedDate: new Date().toISOString(),
+        };
+        return emp;
+      }).filter(e => e.name);
+
+      if (employeesToAdd.length === 0) {
+        toast({ title: 'لا توجد بيانات', description: 'لم يتم العثور على سجلات صالحة في الملف', variant: 'destructive' });
+        return;
+      }
+
+      const updatedBank: Bank = {
+        ...bank,
+        branches: bank.branches.map(br => br.id === branchId ? {
+          ...br,
+          employees: [...br.employees, ...employeesToAdd]
+        } : br)
+      };
+
+      onUpdateBank(updatedBank);
+      toast({ title: 'تم الاستيراد', description: `تمت إضافة ${employeesToAdd.length} موظفاً` });
+    } catch (e) {
+      toast({ title: 'فشل الاستيراد', description: 'تأكد من صيغة ملف إكسل والمحاولة مرة أخرى', variant: 'destructive' });
+    }
   };
 
   return (
@@ -342,6 +419,21 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{branch.employees.length} موظف</Badge>
+                      <label className="inline-flex items-center text-sm cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImportEmployees(branch.id, file);
+                            e.currentTarget.value = '';
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="h-8 px-2">
+                          استيراد إكسل
+                        </Button>
+                      </label>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm" className="h-8 px-2">
