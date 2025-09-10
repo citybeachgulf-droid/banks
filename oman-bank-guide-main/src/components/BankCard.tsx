@@ -72,15 +72,17 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
         </div>
         
         <div className="flex items-center justify-between pt-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => window.open(bank.website, '_blank')}
-            className="gap-2"
-          >
-            <ExternalLink className="w-4 h-4" />
-            الموقع الإلكتروني
-          </Button>
+          {bank.website && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open(bank.website, '_blank')}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              الموقع الإلكتروني
+            </Button>
+          )}
           
           <Button 
             onClick={() => onViewDetails(bank)}
