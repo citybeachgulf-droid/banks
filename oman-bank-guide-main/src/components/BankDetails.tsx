@@ -22,8 +22,10 @@ interface BankDetailsProps {
 
 export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) => {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [activeTab, setActiveTab] = useState<'branches' | 'employees'>('branches');
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
   const [isAddingBranch, setIsAddingBranch] = useState(false);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState<string | null>(null);
   const [newEmployee, setNewEmployee] = useState<Partial<Employee>>({
     name: '',
     position: '',
@@ -44,10 +46,10 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
   const { toast } = useToast();
 
   const addEmployee = (branchId: string) => {
-    if (!newEmployee.name || !newEmployee.position) {
+    if (!newEmployee.name || !newEmployee.phone) {
       toast({
         title: "خطأ",
-        description: "يرجى ملء الحقول المطلوبة",
+        description: "الاسم ورقم الهاتف مطلوبان",
         variant: "destructive"
       });
       return;
@@ -57,7 +59,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
       id: `emp-${Date.now()}`,
       branchId,
       name: newEmployee.name!,
-      position: newEmployee.position!,
+      position: newEmployee.position || '',
       department: newEmployee.department || '',
       phone: newEmployee.phone,
       email: newEmployee.email,
@@ -77,6 +79,9 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
     onUpdateBank(updatedBank);
     setNewEmployee({ name: '', position: '', department: '', phone: '', email: '', hasConsent: false });
     setIsAddingEmployee(false);
+    setIsQuickAddOpen(null);
+    setActiveTab('employees');
+    setSelectedBranch(bank.branches.find(b => b.id === branchId) || null);
     
     toast({
       title: "تم بنجاح",
@@ -212,7 +217,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="branches" className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="branches">الفروع</TabsTrigger>
           <TabsTrigger value="employees">الموظفين</TabsTrigger>
@@ -315,12 +320,57 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setSelectedBranch(branch)}
+                      onClick={() => { setSelectedBranch(branch); setActiveTab('employees'); }}
                       className="gap-2"
                     >
                       <Users className="w-4 h-4" />
                       عرض الموظفين
                     </Button>
+                    <Dialog open={isQuickAddOpen === branch.id} onOpenChange={(open) => setIsQuickAddOpen(open ? branch.id : null)}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          إضافة موظف سريع
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>إضافة موظف جديد إلى {branch.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor={`quick-name-${branch.id}`}>اسم الموظف *</Label>
+                            <Input
+                              id={`quick-name-${branch.id}`}
+                              value={newEmployee.name || ''}
+                              onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                              placeholder="الاسم الكامل"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`quick-phone-${branch.id}`}>رقم الهاتف *</Label>
+                            <Input
+                              id={`quick-phone-${branch.id}`}
+                              value={newEmployee.phone || ''}
+                              onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                              placeholder="+968 xxxxxxxx"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`quick-position-${branch.id}`}>المنصب (اختياري)</Label>
+                            <Input
+                              id={`quick-position-${branch.id}`}
+                              value={newEmployee.position || ''}
+                              onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                              placeholder="مثال: موظف خدمة عملاء"
+                            />
+                          </div>
+                          <Button onClick={() => addEmployee(branch.id)} className="w-full">
+                            إضافة الموظف
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                     <Button 
                       variant="outline" 
                       size="sm"
