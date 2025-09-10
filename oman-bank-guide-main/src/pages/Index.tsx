@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Database, Globe, BarChart3, Download, RefreshCw } from 'lucide-react';
+import { Building2, Database, Globe, BarChart3, Download, RefreshCw, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoading(true);
@@ -200,6 +202,10 @@ const Index = () => {
                 <Button variant="outline" onClick={refreshData} size="sm" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
                   تحديث
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/employees')} size="sm" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  موظفو الفروع
                 </Button>
               </div>
             </div>
