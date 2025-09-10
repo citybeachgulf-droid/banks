@@ -4,7 +4,6 @@ import { loadBankData, saveBankData } from '@/utils/bankData';
 import { BankCard } from '@/components/BankCard';
 import { BankDetails } from '@/components/BankDetails';
 import { SearchAndFilter } from '@/components/SearchAndFilter';
-import { DataCollector } from '@/components/DataCollector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -291,14 +290,10 @@ const Index = () => {
 
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         <Tabs defaultValue="banks" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="banks" className="gap-2">
               <Building2 className="w-4 h-4" />
               البنوك والفروع
-            </TabsTrigger>
-            <TabsTrigger value="data-collection" className="gap-2">
-              <Globe className="w-4 h-4" />
-              جمع البيانات
             </TabsTrigger>
             <TabsTrigger value="statistics" className="gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -406,9 +401,7 @@ const Index = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="data-collection">
-            <DataCollector onDataCollected={handleDataCollected} />
-          </TabsContent>
+
 
           <TabsContent value="statistics" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
