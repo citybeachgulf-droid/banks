@@ -1,0 +1,15 @@
+node_modules/
+.dist/
+dist/
+.vscode/
+.DS_Store
+*.log
+.env
+.env.*
+*.local
+coverage/
+build/
+.cache/
+.idea/
+.bun-install
+.bun-*/
