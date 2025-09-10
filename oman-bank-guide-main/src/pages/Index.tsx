@@ -98,6 +98,17 @@ const Index = () => {
     setSelectedBank(updatedBank);
   };
 
+  const deleteBank = (bankId: string) => {
+    const newBankData: BankData = {
+      banks: bankData.banks.filter(b => b.id !== bankId),
+      lastUpdated: new Date().toISOString()
+    };
+    setBankData(newBankData);
+    saveBankData(newBankData);
+    setSelectedBank(null);
+    toast({ title: 'تم الحذف', description: 'تم مسح البنك وجميع فروعه' });
+  };
+
   const slugify = (value: string) =>
     value
       .toLowerCase()
@@ -247,6 +258,7 @@ const Index = () => {
             bank={selectedBank}
             onBack={() => setSelectedBank(null)}
             onUpdateBank={updateBank}
+            onDeleteBank={deleteBank}
           />
         </div>
       </div>

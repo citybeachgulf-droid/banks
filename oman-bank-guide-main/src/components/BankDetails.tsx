@@ -19,9 +19,10 @@ interface BankDetailsProps {
   bank: Bank;
   onBack: () => void;
   onUpdateBank: (bank: Bank) => void;
+  onDeleteBank: (bankId: string) => void;
 }
 
-export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) => {
+export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDetailsProps) => {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [activeTab, setActiveTab] = useState<'branches' | 'employees'>('branches');
   const [isAddingEmployee, setIsAddingEmployee] = useState(false);
@@ -200,10 +201,32 @@ export const BankDetails = ({ bank, onBack, onUpdateBank }: BankDetailsProps) =>
           <ArrowRight className="w-4 h-4" />
           العودة للقائمة
         </Button>
-        <Button onClick={exportAllData} className="gap-2 bg-gradient-accent">
-          <Download className="w-4 h-4" />
-          تصدير جميع البيانات
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={exportAllData} className="gap-2 bg-gradient-accent">
+            <Download className="w-4 h-4" />
+            تصدير جميع البيانات
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="w-4 h-4" />
+                مسح البنك
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>تأكيد مسح البنك</AlertDialogTitle>
+                <AlertDialogDescription>
+                  سيتم حذف هذا البنك وجميع فروعه وبيانات موظفيه المرتبطة. لا يمكن التراجع عن هذه الخطوة.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { onDeleteBank(bank.id); toast({ title: 'تم الحذف', description: 'تم مسح البنك بنجاح' }); }}>مسح</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <Card className="bg-gradient-card shadow-elegant">
