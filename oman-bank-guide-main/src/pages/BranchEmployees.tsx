@@ -60,14 +60,14 @@ const BranchEmployees = () => {
   }, [filteredBranches]);
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-col sm:flex-row text-center sm:text-right">
           <h1 className="text-2xl font-bold">موظفو الفروع</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>الرجوع للرئيسية</Button>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate('/')}>الرجوع للرئيسية</Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
           <div>
             <label className="text-sm mb-1 block">البنك</label>
             <Select value={selectedBankId} onValueChange={(v) => { setSelectedBankId(v); setSelectedBranchId('all'); }}>
@@ -98,11 +98,11 @@ const BranchEmployees = () => {
           </div>
           <div className="md:col-span-2">
             <label className="text-sm mb-1 block">بحث</label>
-            <Input placeholder="ابحث بالاسم أو رقم الهاتف أو اسم الفرع" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="ابحث بالاسم أو رقم الهاتف أو اسم الفرع" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           <Card className="bg-gradient-card">
             <CardContent className="p-4 text-center">
               <Building2 className="w-6 h-6 mx-auto mb-1" />
@@ -129,28 +129,28 @@ const BranchEmployees = () => {
           {filteredBranches.map((br: any) => (
             <Card key={br.id} className="hover:shadow-card">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="w-full">
                     <CardTitle className="text-lg">{br.name}</CardTitle>
                     <div className="text-sm text-muted-foreground">{br.bankName || ''} • {br.city} • {br.area}</div>
                   </div>
-                  <Badge variant="outline">{br.employees.length} موظف</Badge>
+                  <Badge variant="outline" className="w-max">{br.employees.length} موظف</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 {br.employees.length > 0 ? (
                   <div className="grid gap-3">
                     {br.employees.map((e: any) => (
-                      <div key={e.id} className="p-3 border rounded-lg flex items-center justify-between">
-                        <div>
+                      <div key={e.id} className="p-3 border rounded-lg flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center sm:justify-between">
+                        <div className="w-full">
                           <div className="font-medium">{e.name}</div>
                           <div className="text-xs text-muted-foreground">{e.position || 'بدون منصب'}</div>
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
                           {e.phone && (<><Phone className="w-4 h-4" /><span>{e.phone}</span></>)}
                           {e.linkedinUrl && (
                             <Button variant="outline" size="sm" asChild>
-                              <a href={e.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                              <a href={e.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
                                 <Linkedin className="w-4 h-4" />
                                 <span>لينكدإن</span>
                               </a>

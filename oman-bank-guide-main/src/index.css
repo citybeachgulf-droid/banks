@@ -126,6 +126,26 @@ All colors MUST be HSL.
     direction: rtl;
   }
   
+  /* Mobile-friendly defaults */
+  html, body, #root {
+    height: 100%;
+  }
+  
+  /* Prevent horizontal scroll on mobile and respect safe areas */
+  body {
+    overflow-x: hidden;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Images and embeds scale down on small screens */
+  img, svg, video, canvas, iframe {
+    max-width: 100%;
+    height: auto;
+  }
+  
   /* Arabic text optimizations */
   .arabic-text {
     font-family: 'Cairo', 'Amiri', 'Scheherazade', serif;
