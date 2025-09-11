@@ -103,6 +103,43 @@ async function ensureLoggedIn(page) {
   }
 }
 
+async function collectProfileLinksFromPeoplePage(page, peopleUrl, { maxProfiles = 200, maxScrolls = 20 } = {}) {
+  const collected = new Set();
+  try {
+    await page.goto(peopleUrl, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+
+    let lastCount = 0;
+    for (let i = 0; i < maxScrolls; i++) {
+      // Collect any profile links currently visible
+      const links = await page.$$eval('a[href*="/in/"]', (as) => as.map((a) => a.getAttribute('href')).filter(Boolean));
+      for (const href of links) {
+        const absolute = href.startsWith('http') ? href : `https://www.linkedin.com${href}`;
+        if (/linkedin\.com\/in\//.test(absolute)) {
+          collected.add(absolute.split('?')[0]);
+        }
+      }
+
+      if (collected.size >= maxProfiles) break;
+
+      // Scroll to bottom to trigger lazy loading
+      await page.evaluate(() => {
+        window.scrollBy(0, document.body.scrollHeight);
+      });
+      await page.waitForTimeout(1200 + Math.floor(Math.random() * 600));
+
+      // Stop if no new links after a scroll
+      if (collected.size === lastCount) {
+        break;
+      }
+      lastCount = collected.size;
+    }
+  } catch (_) {
+    // swallow and return whatever collected
+  }
+  return Array.from(collected);
+}
+
 async function scrapeProfile(page, url) {
   const result = { url, name: '', headline: '', emails: [], phones: [], links: [] };
   try {
@@ -151,26 +188,28 @@ async function scrapeProfile(page, url) {
 async function main() {
   const argv = yargs(hideBin(process.argv))
     .option('input', { alias: 'i', type: 'string', describe: 'Path to file with LinkedIn profile URLs (one per line)' })
-    .option('url', { alias: 'u', type: 'array', describe: 'One or more LinkedIn profile URLs' })
+    .option('url', { alias: 'u', type: 'array', describe: 'One or more LinkedIn URLs (profile or company people)' })
     .option('output', { alias: 'o', type: 'string', default: 'output.json', describe: 'Output file (json or csv)' })
     .option('headful', { type: 'boolean', default: true, describe: 'Show browser window (recommended for login)' })
     .option('timeout', { type: 'number', default: 30000, describe: 'Navigation timeout per profile in ms' })
     .option('locale', { type: 'string', choices: ['en', 'ar', 'both'], default: 'both', describe: 'CSV header language: en, ar, or both' })
+    .option('maxProfiles', { type: 'number', default: 200, describe: 'Max profiles to collect from each company people URL' })
+    .option('maxScrolls', { type: 'number', default: 20, describe: 'Max scroll passes on company people pages' })
     .demandOption(['output'])
     .help()
     .parse();
 
-  let urls = [];
+  let inputUrls = [];
   if (argv.input) {
     const inputPath = path.isAbsolute(argv.input) ? argv.input : path.join(process.cwd(), argv.input);
-    urls = await readLines(inputPath);
+    inputUrls = await readLines(inputPath);
   }
   if (argv.url) {
-    urls.push(...argv.url.map(String));
+    inputUrls.push(...argv.url.map(String));
   }
-  urls = Array.from(new Set(urls)).filter((u) => /linkedin\.com\/in\//.test(u));
-  if (urls.length === 0) {
-    console.error('No valid LinkedIn profile URLs provided. Use --input or --url.');
+  inputUrls = Array.from(new Set(inputUrls.map(String)));
+  if (inputUrls.length === 0) {
+    console.error('No LinkedIn URLs provided. Use --input or --url.');
     process.exit(1);
   }
 
@@ -179,6 +218,21 @@ async function main() {
   await applyEnvCookies(context);
   const page = await context.newPage();
   await ensureLoggedIn(page);
+
+  // Expand company people URLs into profile URLs
+  const peopleUrls = inputUrls.filter((u) => /linkedin\.com\/company\/.+\/people\/?/.test(u));
+  const profileSeeds = inputUrls.filter((u) => /linkedin\.com\/in\//.test(u));
+  let urls = Array.from(new Set(profileSeeds));
+  for (const ppl of peopleUrls) {
+    const found = await collectProfileLinksFromPeoplePage(page, ppl, { maxProfiles: argv.maxProfiles, maxScrolls: argv.maxScrolls });
+    urls.push(...found);
+  }
+  urls = Array.from(new Set(urls.filter((u) => /linkedin\.com\/in\//.test(u))));
+  if (urls.length === 0) {
+    await browser.close();
+    console.error('No valid LinkedIn profile URLs resolved. Provide /in/ profiles or a company /people URL.');
+    process.exit(1);
+  }
 
   const results = [];
   for (const url of urls) {
