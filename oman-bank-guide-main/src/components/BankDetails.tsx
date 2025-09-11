@@ -94,10 +94,10 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
   };
 
   const addBranch = () => {
-    if (!newBranch.name || !newBranch.mapUrl) {
+    if (!newBranch.name || !newBranch.area) {
       toast({
         title: "خطأ",
-        description: "يرجى إدخال اسم الفرع ورابط Google Maps",
+        description: "يرجى إدخال اسم الفرع والمنطقة",
         variant: "destructive"
       });
       return;
@@ -107,11 +107,11 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
       id: `branch-${Date.now()}`,
       bankId: bank.id,
       name: newBranch.name!,
-      city: newBranch.city || '',
+      city: '',
       area: newBranch.area || '',
-      address: newBranch.address || '',
-      phone: newBranch.phone || '',
-      mapUrl: newBranch.mapUrl!,
+      address: '',
+      phone: '',
+      mapUrl: (newBranch.mapUrl || '').trim() || undefined,
       employees: [],
       services: newBranch.services || [],
       workingHours: {
@@ -131,7 +131,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
     };
 
     onUpdateBank(updatedBank);
-    setNewBranch({ name: '', city: '', area: '', address: '', phone: '', mapUrl: '', services: [] });
+    setNewBranch({ name: '', area: '', mapUrl: '', services: [] });
     setIsAddingBranch(false);
     
     toast({
@@ -364,7 +364,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     />
                   </div>
                   <div>
-                    <Label htmlFor="branch-map-url">رابط Google Maps *</Label>
+                    <Label htmlFor="branch-map-url">رابط Google Maps</Label>
                     <Input
                       id="branch-map-url"
                       value={newBranch.mapUrl || ''}
@@ -373,39 +373,12 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     />
                   </div>
                   <div>
-                    <Label htmlFor="branch-city">المدينة</Label>
-                    <Input
-                      id="branch-city"
-                      value={newBranch.city || ''}
-                      onChange={(e) => setNewBranch({ ...newBranch, city: e.target.value })}
-                      placeholder="مثال: صحار"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="branch-area">المنطقة</Label>
+                    <Label htmlFor="branch-area">المنطقة *</Label>
                     <Input
                       id="branch-area"
                       value={newBranch.area || ''}
                       onChange={(e) => setNewBranch({ ...newBranch, area: e.target.value })}
                       placeholder="مثال: مركز المدينة"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="branch-address">العنوان</Label>
-                    <Textarea
-                      id="branch-address"
-                      value={newBranch.address || ''}
-                      onChange={(e) => setNewBranch({ ...newBranch, address: e.target.value })}
-                      placeholder="العنوان التفصيلي للفرع"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="branch-phone">رقم الهاتف</Label>
-                    <Input
-                      id="branch-phone"
-                      value={newBranch.phone || ''}
-                      onChange={(e) => setNewBranch({ ...newBranch, phone: e.target.value })}
-                      placeholder="+968 xxxxxxxx"
                     />
                   </div>
                   <Button onClick={addBranch} className="w-full">
@@ -425,7 +398,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                       <CardTitle className="text-lg">{branch.name}</CardTitle>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                         <MapPin className="w-4 h-4" />
-                        <span>{branch.city} - {branch.area}</span>
+                        <span>{[branch.city, branch.area].filter(Boolean).join(' - ')}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
