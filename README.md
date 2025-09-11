@@ -1,3 +1,34 @@
+# LinkedIn People Scraper
+
+أداة سطر أوامر لاستخراج الاسم، المنصب، ومعلومة تواصل/وصف من صفحة الأشخاص لشركة على لينكدإن.
+
+تحذير: الوصول الكامل لبيانات الأشخاص على لينكدإن يتطلب تسجيل دخول. يمكنك تمرير قيمة كوكي `li_at` الخاصة بك للوصول إلى نتائج أوسع. استخدم هذا على مسؤوليتك ووفق شروط لينكدإن.
+
+## المتطلبات
+
+1. Python 3.9+
+2. تثبيت التبعيات:
+
+```bash
+pip install -r requirements.txt
+python -m playwright install --with-deps chromium
+```
+
+## الاستخدام
+
+```bash
+python linkedin_people_scraper.py "https://www.linkedin.com/company/omanarabbank/people/" --limit 100 --out people.csv --li-at YOUR_LI_AT
+```
+
+يمكن وضع الكوكي في متغير بيئي بدل تمربره:
+
+```bash
+export LI_AT=YOUR_LI_AT
+python linkedin_people_scraper.py "https://www.linkedin.com/company/omanarabbank/people/" -l 100 -o people.csv
+```
+
+سيتم إنشاء ملف `people.csv` يحتوي الأعمدة: `name,title,contact`.
+
 # أداة استخراج بيانات العميل من صفحة ويب
 
 أداة سطر أوامر بسيطة تأخذ رابط صفحة ويب وتستخرج اسم العميل ومعلومات التواصل منها (الإيميلات، أرقام الهواتف، روابط واتساب، وروابط الحسابات الاجتماعية) من نفس الصفحة فقط.
