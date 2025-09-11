@@ -263,15 +263,15 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="bg-gradient-hero text-white py-16 px-4">
+      <div className="bg-gradient-hero text-white py-12 md:py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 arabic-text">
+          <h1 className="text-3xl md:text-6xl font-bold mb-3 md:mb-4 arabic-text">
             دليل البنوك العمانية
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
+          <p className="text-lg md:text-2xl mb-6 md:mb-8 opacity-90">
             نظام شامل لإدارة معلومات البنوك والفروع والموظفين في سلطنة عمان
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
               <div className="text-3xl font-bold">{bankData.banks.length}</div>
               <div className="text-sm opacity-90">بنك مسجل</div>
@@ -288,7 +288,7 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
         <Tabs defaultValue="banks" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="banks" className="gap-2">
@@ -302,7 +302,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="banks" className="space-y-6">
-            <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start">
               <div className="flex-1 w-full">
                 <SearchAndFilter
                   searchTerm={searchTerm}
@@ -316,10 +316,10 @@ const Index = () => {
                   hasActiveFilters={hasActiveFilters}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Dialog open={isAddingBank} onOpenChange={setIsAddingBank}>
                   <DialogTrigger asChild>
-                    <Button className="gap-2">
+                    <Button className="gap-2 w-full sm:w-auto">
                       إضافة بنك
                     </Button>
                   </DialogTrigger>
@@ -340,11 +340,11 @@ const Index = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" onClick={refreshData} size="sm" className="gap-2">
+                <Button variant="outline" onClick={refreshData} size="sm" className="gap-2 w-full sm:w-auto">
                   <RefreshCw className="w-4 h-4" />
                   تحديث
                 </Button>
-                <Button variant="outline" onClick={() => navigate('/employees')} size="sm" className="gap-2">
+                <Button variant="outline" onClick={() => navigate('/employees')} size="sm" className="gap-2 w-full sm:w-auto">
                   <Users className="w-4 h-4" />
                   موظفو الفروع
                 </Button>
@@ -352,7 +352,7 @@ const Index = () => {
             </div>
 
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="animate-pulse">
                     <CardHeader>
@@ -369,7 +369,7 @@ const Index = () => {
                 ))}
               </div>
             ) : filteredBanks.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {filteredBanks.map((bank) => (
                   <BankCard
                     key={bank.id}

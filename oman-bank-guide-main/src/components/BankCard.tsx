@@ -35,8 +35,8 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
   return (
     <Card className={`group hover:shadow-elegant transition-all duration-300 animate-fade-in-up ${getBankTypeColor(bank.type)}`}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
+        <div className="flex items-start justify-between gap-3 flex-col sm:flex-row">
+          <div className="space-y-2 w-full">
             <CardTitle className="text-xl arabic-text group-hover:text-primary transition-colors">
               {bank.name}
             </CardTitle>
@@ -44,7 +44,7 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
           </div>
           <Badge 
             variant="secondary" 
-            className="text-xs font-medium"
+            className="text-xs font-medium w-max"
           >
             {getBankTypeLabel(bank.type)}
           </Badge>
@@ -52,7 +52,7 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>تأسس {bank.establishedYear}</span>
@@ -71,13 +71,13 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
           </div>
         </div>
         
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-2 gap-2 flex-col sm:flex-row">
           {bank.website && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => window.open(bank.website, '_blank')}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto"
             >
               <ExternalLink className="w-4 h-4" />
               الموقع الإلكتروني
@@ -86,7 +86,7 @@ export const BankCard = ({ bank, onViewDetails }: BankCardProps) => {
           
           <Button 
             onClick={() => onViewDetails(bank)}
-            className="bg-gradient-hero hover:shadow-glow transition-all duration-300"
+            className="bg-gradient-hero hover:shadow-glow transition-all duration-300 w-full sm:w-auto"
             size="sm"
           >
             عرض التفاصيل
