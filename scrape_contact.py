@@ -254,6 +254,18 @@ def analyze_page(url: str, default_region: str) -> PageContacts:
 
     soup = BeautifulSoup(html, "lxml")
 
+    # LinkedIn pages are highly dynamic and require login; advise using the dedicated CLI
+    if "linkedin.com" in url.lower():
+        name = "LinkedIn"
+        return PageContacts(
+            url=url,
+            name=name,
+            emails=[],
+            phones=[],
+            whatsapp=[],
+            socials={"socials": ["linkedin"]},
+        )
+
     # JSON-LD first
     jsonld = parse_jsonld_for_name_and_contacts(soup)
 
