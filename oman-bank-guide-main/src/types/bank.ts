@@ -17,6 +17,7 @@ export interface Branch {
   area: string;
   address: string;
   phone: string;
+  mapUrl?: string;
   coordinates?: {
     lat: number;
     lng: number;

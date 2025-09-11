@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit, Trash2 } from 'lucide-react';
+import { ArrowRight, MapPin, Phone, Users, Plus, Download, Edit, Trash2, ExternalLink } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportToCSV } from '@/utils/bankData';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +43,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
     area: '',
     address: '',
     phone: '',
+    mapUrl: '',
     services: []
   });
   
@@ -93,10 +94,10 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
   };
 
   const addBranch = () => {
-    if (!newBranch.name || !newBranch.city || !newBranch.address) {
+    if (!newBranch.name || !newBranch.mapUrl) {
       toast({
         title: "خطأ",
-        description: "يرجى ملء الحقول المطلوبة",
+        description: "يرجى إدخال اسم الفرع ورابط Google Maps",
         variant: "destructive"
       });
       return;
@@ -106,10 +107,11 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
       id: `branch-${Date.now()}`,
       bankId: bank.id,
       name: newBranch.name!,
-      city: newBranch.city!,
+      city: newBranch.city || '',
       area: newBranch.area || '',
-      address: newBranch.address!,
+      address: newBranch.address || '',
       phone: newBranch.phone || '',
+      mapUrl: newBranch.mapUrl!,
       employees: [],
       services: newBranch.services || [],
       workingHours: {
@@ -129,7 +131,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
     };
 
     onUpdateBank(updatedBank);
-    setNewBranch({ name: '', city: '', area: '', address: '', phone: '', services: [] });
+    setNewBranch({ name: '', city: '', area: '', address: '', phone: '', mapUrl: '', services: [] });
     setIsAddingBranch(false);
     
     toast({
@@ -362,7 +364,16 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     />
                   </div>
                   <div>
-                    <Label htmlFor="branch-city">المدينة *</Label>
+                    <Label htmlFor="branch-map-url">رابط Google Maps *</Label>
+                    <Input
+                      id="branch-map-url"
+                      value={newBranch.mapUrl || ''}
+                      onChange={(e) => setNewBranch({ ...newBranch, mapUrl: e.target.value })}
+                      placeholder="الصق رابط الموقع من خرائط Google"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="branch-city">المدينة</Label>
                     <Input
                       id="branch-city"
                       value={newBranch.city || ''}
@@ -380,7 +391,7 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     />
                   </div>
                   <div>
-                    <Label htmlFor="branch-address">العنوان *</Label>
+                    <Label htmlFor="branch-address">العنوان</Label>
                     <Textarea
                       id="branch-address"
                       value={newBranch.address || ''}
@@ -474,6 +485,29 @@ export const BankDetails = ({ bank, onBack, onUpdateBank, onDeleteBank }: BankDe
                     )}
                   </div>
                   <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        let url = (branch.mapUrl || '').trim();
+                        if (!url) {
+                          if (branch.coordinates) {
+                            url = `https://www.google.com/maps?q=${branch.coordinates.lat},${branch.coordinates.lng}`;
+                          } else {
+                            const query = encodeURIComponent([branch.address, branch.city, branch.area].filter(Boolean).join(' '));
+                            url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                          }
+                        }
+                        if (!/^https?:\/\//i.test(url)) {
+                          url = `https://${url}`;
+                        }
+                        window.open(url, '_blank');
+                      }}
+                      className="gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      الموقع
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
