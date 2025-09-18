@@ -56,9 +56,48 @@ export const extractPhoneNumbers = (contact: PickedContact): string[] => {
     if (t && typeof t.value === 'string') return [t.value];
     return [];
   });
-  return numbers
-    .map((n) => String(n).replace(/[\s-]/g, ''))
+  const normalizeArabicDigits = (input: string): string => {
+    let out = '';
+    for (const ch of input || '') {
+      const code = ch.charCodeAt(0);
+      // Arabic-Indic digits ٠١٢٣٤٥٦٧٨٩
+      if (code >= 0x0660 && code <= 0x0669) {
+        out += String(code - 0x0660);
+        continue;
+      }
+      // Eastern Arabic-Indic digits ۰۱۲۳۴۵۶۷۸۹
+      if (code >= 0x06f0 && code <= 0x06f9) {
+        out += String(code - 0x06f0);
+        continue;
+      }
+      out += ch;
+    }
+    return out;
+  };
+
+  const sanitized = numbers
+    .map((n) => normalizeArabicDigits(String(n)))
+    // keep leading + for international, strip other non-digits
+    .map((n) => {
+      const trimmed = n.trim();
+      if (trimmed.startsWith('+')) {
+        return '+' + trimmed.slice(1).replace(/[^0-9]/g, '');
+      }
+      return trimmed.replace(/[^0-9]/g, '');
+    })
+    .map((n) => n.replace(/^(00)(\d+)/, '+$2'))
     .filter((n) => n.length > 0);
+
+  // Deduplicate while preserving order
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const p of sanitized) {
+    if (!seen.has(p)) {
+      seen.add(p);
+      unique.push(p);
+    }
+  }
+  return unique;
 };
 
 // ---------------- iOS Fallback: CSV/VCF Parsing ----------------

@@ -275,7 +275,7 @@ const BranchEmployees = () => {
         }
       }
 
-      const updated: BankData = { ...loadBankData(), lastUpdated: new Date().toISOString() };
+      const updated: BankData = { ...current, lastUpdated: new Date().toISOString() };
       saveBankData(updated);
       setBankData(updated);
       toast({ title: 'تم الاستيراد', description: `تمت إضافة ${totalAdded} موظف من الملف` });
