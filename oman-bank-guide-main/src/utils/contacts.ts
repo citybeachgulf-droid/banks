@@ -61,3 +61,127 @@ export const extractPhoneNumbers = (contact: PickedContact): string[] => {
     .filter((n) => n.length > 0);
 };
 
+// ---------------- iOS Fallback: CSV/VCF Parsing ----------------
+
+const parseCSV = (text: string): string[][] => {
+  const rows: string[][] = [];
+  let current: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        current.push(field);
+        field = '';
+      } else if (ch === '\n') {
+        current.push(field);
+        rows.push(current);
+        current = [];
+        field = '';
+      } else if (ch === '\r') {
+        // ignore CR
+      } else {
+        field += ch;
+      }
+    }
+  }
+  // push last field/row
+  current.push(field);
+  if (current.length > 1 || current[0] !== '') rows.push(current);
+  return rows;
+};
+
+const normalizeHeader = (h: string): string => {
+  const lower = h.trim().toLowerCase();
+  if (['name', 'full name', 'fullname', 'fn'].includes(lower)) return 'name';
+  if (['phone', 'tel', 'mobile', 'phone1', 'phone 1', 'primary phone'].includes(lower)) return 'tel1';
+  if (['phone2', 'tel2', 'secondary phone', 'phone 2'].includes(lower)) return 'tel2';
+  if (['email', 'e-mail'].includes(lower)) return 'email';
+  if (['org', 'organization', 'company', 'employer'].includes(lower)) return 'org';
+  if (['address', 'addr'].includes(lower)) return 'address';
+  return lower;
+};
+
+export const parseCSVContacts = (text: string): PickedContact[] => {
+  const rows = parseCSV(text).filter((r) => r.some((c) => c && c.trim() !== ''));
+  if (rows.length === 0) return [];
+  const headers = rows[0].map(normalizeHeader);
+  const contacts: PickedContact[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const record: Record<string, string> = {};
+    for (let j = 0; j < headers.length; j++) {
+      record[headers[j]] = row[j] ?? '';
+    }
+    const tel: string[] = [];
+    if (record['tel']) tel.push(record['tel']);
+    if (record['tel1']) tel.push(record['tel1']);
+    if (record['tel2']) tel.push(record['tel2']);
+    if (record['phone']) tel.push(record['phone']);
+    const contact: PickedContact = {
+      id: undefined,
+      name: record['name'] || undefined,
+      tel,
+      email: record['email'] ? [record['email']] : [],
+      address: record['address'] ? [record['address']] : [],
+      org: record['org'] || undefined,
+      raw: record
+    };
+    contacts.push(contact);
+  }
+  return contacts;
+};
+
+export const parseVCFContacts = (text: string): PickedContact[] => {
+  // Unfold folded lines (lines starting with space are continuations)
+  const unfolded = text.replace(/\r\n[\t ]/g, '');
+  const blocks = unfolded.split(/BEGIN:VCARD/i).slice(1).map((b) => b.split(/END:VCARD/i)[0]);
+  const results: PickedContact[] = [];
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    let name: string | undefined;
+    let org: string | undefined;
+    const tel: string[] = [];
+    for (const line of lines) {
+      const [keyPart, valuePartRaw] = line.split(':');
+      if (!valuePartRaw) continue;
+      const key = keyPart.toUpperCase();
+      const value = valuePartRaw.trim();
+      if (key.startsWith('FN')) {
+        name = value;
+      } else if (key.startsWith('ORG')) {
+        org = value.split(';')[0];
+      } else if (key.startsWith('TEL')) {
+        tel.push(value.replace(/[^+\d]/g, ''));
+      }
+    }
+    if (name || org || tel.length > 0) {
+      results.push({ name, org, tel, email: [], address: [], raw: block });
+    }
+  }
+  return results;
+};
+
+export const parseContactsFromText = (fileName: string, text: string): PickedContact[] => {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.csv')) return parseCSVContacts(text);
+  if (lower.endsWith('.vcf') || lower.endsWith('.vcard')) return parseVCFContacts(text);
+  // Try both, prefer VCF if it yields results
+  const v = parseVCFContacts(text);
+  if (v.length > 0) return v;
+  return parseCSVContacts(text);
+};
+
