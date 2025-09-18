@@ -100,6 +100,62 @@ export const extractPhoneNumbers = (contact: PickedContact): string[] => {
   return unique;
 };
 
+// Try to infer a branch name from mixed Arabic/English text
+const inferBranchNameFromText = (text: string): string | undefined => {
+  if (!text) return undefined;
+  const t = text.replace(/[\u064B-\u0652]/g, '').trim();
+  const lower = t.toLowerCase();
+
+  // Common patterns
+  const arabicBranch = /(ال?فرع)\s+([^,;\-|()\[\]\n\r]+)\b/iu;
+  const arabicAtBranch = /(?:فرع)\s+([^,;\-|()\[\]\n\r]+)\b/iu;
+  const englishBranch = /\bbranch\s+([^,;\-|()\[\]\n\r]+)\b/i;
+  const englishMain = /\b(main|head)\s+(office|branch)\b/i;
+
+  let m = t.match(arabicBranch) || t.match(arabicAtBranch);
+  if (m && m[2]) {
+    const core = m[2].trim();
+    if (!core) return undefined;
+    // Ensure Arabic display with prefix
+    return core.startsWith('فرع') || core.startsWith('الفرع') ? core : `فرع ${core}`;
+  }
+
+  m = t.match(englishBranch);
+  if (m && m[1]) {
+    const core = m[1].trim();
+    if (!core) return undefined;
+    return `Branch ${core}`;
+  }
+
+  if (englishMain.test(lower)) {
+    return 'Main Branch';
+  }
+
+  // Heuristics: look for tokens after dash/pipe that look like areas
+  const parts = t.split(/[-|،:,]|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+  for (const part of parts) {
+    if (/^(ال?قرم|روي|الخوض|بوشر|السيب|مطرح|نزوى|صلالة|صحار|عبري|صور)\b/.test(part)) {
+      return part.startsWith('فرع') ? part : `فرع ${part}`;
+    }
+  }
+  return undefined;
+};
+
+// Public helper: infer branch name from a contact's available fields
+export const inferBranchNameFromContact = (contact: PickedContact): string | undefined => {
+  const candidates: string[] = [];
+  if (contact.name) candidates.push(contact.name);
+  if (contact.org) candidates.push(contact.org);
+  for (const addr of contact.address || []) {
+    if (addr) candidates.push(addr);
+  }
+  for (const c of candidates) {
+    const inferred = inferBranchNameFromText(c);
+    if (inferred) return inferred;
+  }
+  return undefined;
+};
+
 // ---------------- iOS Fallback: CSV/VCF Parsing ----------------
 
 const parseCSV = (text: string): string[][] => {

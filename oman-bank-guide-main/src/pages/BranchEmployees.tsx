@@ -9,7 +9,7 @@ import { Phone, Building2, Users, Linkedin, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { containsBankKeyword, extractPhoneNumbers, isContactsApiSupported, pickContacts, parseContactsFromText } from '@/utils/contacts';
+import { containsBankKeyword, extractPhoneNumbers, isContactsApiSupported, pickContacts, parseContactsFromText, inferBranchNameFromContact } from '@/utils/contacts';
 
 const BranchEmployees = () => {
   const [bankData, setBankData] = useState<BankData>({ banks: [], lastUpdated: '' });
@@ -113,10 +113,41 @@ const BranchEmployees = () => {
           continue;
         }
 
-        // Choose a branch to attach to: if user selected a specific branch of this bank, use it; else first branch
+        // Choose or create a branch: prefer selected, else infer by name, else first, else create
         let targetBranch: Branch | undefined;
         if (selectedBankId !== 'all' && inferredBank.id === selectedBankId && selectedBranchId !== 'all') {
           targetBranch = inferredBank.branches.find((br) => br.id === selectedBranchId);
+        }
+        if (!targetBranch) {
+          const inferredBranchName = inferBranchNameFromContact(c);
+          if (inferredBranchName) {
+            targetBranch = inferredBank.branches.find((br) => br.name === inferredBranchName);
+            if (!targetBranch) {
+              const newBranchId = `${inferredBank.id}-br-` + randomId();
+              const newBranch: Branch = {
+                id: newBranchId,
+                bankId: inferredBank.id,
+                name: inferredBranchName,
+                city: 'غير محدد',
+                area: '',
+                address: '',
+                phone: '',
+                employees: [],
+                services: [],
+                workingHours: {
+                  sunday: { open: '08:00', close: '14:00', isOpen: true },
+                  monday: { open: '08:00', close: '14:00', isOpen: true },
+                  tuesday: { open: '08:00', close: '14:00', isOpen: true },
+                  wednesday: { open: '08:00', close: '14:00', isOpen: true },
+                  thursday: { open: '08:00', close: '14:00', isOpen: true },
+                  friday: { open: '00:00', close: '00:00', isOpen: false },
+                  saturday: { open: '00:00', close: '00:00', isOpen: false }
+                }
+              };
+              inferredBank.branches.push(newBranch);
+              targetBranch = newBranch;
+            }
+          }
         }
         if (!targetBranch) {
           targetBranch = inferredBank.branches[0];
@@ -228,6 +259,37 @@ const BranchEmployees = () => {
         let targetBranch: Branch | undefined;
         if (selectedBankId !== 'all' && inferredBank.id === selectedBankId && selectedBranchId !== 'all') {
           targetBranch = inferredBank.branches.find((br) => br.id === selectedBranchId);
+        }
+        if (!targetBranch) {
+          const inferredBranchName = inferBranchNameFromContact(c);
+          if (inferredBranchName) {
+            targetBranch = inferredBank.branches.find((br) => br.name === inferredBranchName);
+            if (!targetBranch) {
+              const newBranchId = `${inferredBank.id}-br-` + randomId();
+              const newBranch: Branch = {
+                id: newBranchId,
+                bankId: inferredBank.id,
+                name: inferredBranchName,
+                city: 'غير محدد',
+                area: '',
+                address: '',
+                phone: '',
+                employees: [],
+                services: [],
+                workingHours: {
+                  sunday: { open: '08:00', close: '14:00', isOpen: true },
+                  monday: { open: '08:00', close: '14:00', isOpen: true },
+                  tuesday: { open: '08:00', close: '14:00', isOpen: true },
+                  wednesday: { open: '08:00', close: '14:00', isOpen: true },
+                  thursday: { open: '08:00', close: '14:00', isOpen: true },
+                  friday: { open: '00:00', close: '00:00', isOpen: false },
+                  saturday: { open: '00:00', close: '00:00', isOpen: false }
+                }
+              };
+              inferredBank.branches.push(newBranch);
+              targetBranch = newBranch;
+            }
+          }
         }
         if (!targetBranch) targetBranch = inferredBank.branches[0];
         if (!targetBranch) continue;
