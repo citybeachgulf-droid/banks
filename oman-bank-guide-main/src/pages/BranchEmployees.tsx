@@ -451,7 +451,9 @@ const BranchEmployees = () => {
                     {br.employees.map((e: any) => (
                       <div key={e.id} className="p-3 border rounded-lg flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center sm:justify-between">
                         <div className="w-full">
-                          <div className="font-medium">{e.name}</div>
+                          <button onClick={() => navigate(`/employees/${e.id}`)} className="font-medium text-left text-primary hover:underline">
+                            {e.name}
+                          </button>
                           <div className="text-xs text-muted-foreground">{e.position || 'بدون منصب'}</div>
                         </div>
                         <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">

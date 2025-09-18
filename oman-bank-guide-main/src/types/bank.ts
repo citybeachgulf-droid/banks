@@ -44,6 +44,7 @@ export interface Employee {
   hasConsent: boolean;
   addedDate: string;
   linkedinUrl?: string;
+  notes?: string;
 }
 
 export interface BankData {
